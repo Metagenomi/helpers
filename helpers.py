@@ -42,6 +42,32 @@ def download_folder(s3_path, dir_to_dl, dry_run=False):
     return dir_to_dl
 
 
+def download_file_multi(s3_path_list, dir_to_dl, dry_run=False):
+    print(f's3_path_list \n\n{s3_path_list}')
+    '''
+    Downloads multiple files from s3
+    :param s3_path_list: list of s3 object paths
+    :param dir_to_dl: local path of dir to download to
+    :return: list of local file paths of the downloaded objects
+    '''
+    local_paths = list()
+
+    seen = dict()
+    dupnum = 1
+    for s3_path in s3_path_list:
+        bucket = s3_path.split('/')[2]
+        key = '/'.join(s3_path.split('/')[3:])
+        name = key.split('/')[-1]
+        if name in seen:
+            name = f'{dupnum}_{name}'
+            dupnum += 1
+        else:
+            seen[name] = 1
+        local_paths.append(download_file_as(s3_path, dir_to_dl, name, dry_run))
+
+    return(local_paths)
+
+
 def download_file(s3_path, dir_to_dl, dry_run=False):
     '''
     Downloads a folder from s3
@@ -58,8 +84,82 @@ def download_file(s3_path, dir_to_dl, dry_run=False):
     if dry_run:
         print('Fake download')
     else:
+        print(f'bucket {bucket} key {key} local_file_name {local_file_name}')
         s3.Object(bucket, key).download_file(local_file_name)
     return local_file_name
+
+
+def download_file_as(s3_path, dir_to_dl, name, dry_run=False):
+    '''
+    Downloads a folder from s3 and change its local name
+    :param s3_path: s3 object path
+    :param dir_to_dl: local path of dir to download to
+    :param name: name of file to create
+    :return: local file path of the object downloaded
+    '''
+    bucket = s3_path.split('/')[2]
+    key = '/'.join(s3_path.split('/')[3:])
+
+    object_name = key.split('/')[-1]
+    local_file_name = os.path.join(dir_to_dl, name)
+
+    if dry_run:
+        print('Fake download')
+    else:
+        print(f'bucket {bucket} key {key} local_file_name {local_file_name}')
+        s3.Object(bucket, key).download_file(local_file_name)
+    return local_file_name
+
+
+def download_pattern(s3_path, dir_to_dl, include, exclude='"*"', dry_run=False):
+    '''
+    Downloads multiple files from s3 based on include/exclude
+    :param s3_path: s3 object path
+    :param dir_to_dl: local path of dir to download to
+    :return: local path of dir to download to
+    '''
+
+    # check include and exclude to be sure they start and end with with ""
+    if include[0] != '"':
+        if include[-1] != '"':
+            include = f'"{include}"'
+
+    dir_to_dl = dir_to_dl.rstrip('/')+'/'
+
+    bucket = s3_path.split('/')[2]
+    key = '/'.join(s3_path.split('/')[3:])
+
+    cmd = f"aws s3 cp --recursive --exclude={exclude} --include={include} \
+          s3://{bucket}/{key} {dir_to_dl}"
+
+
+    if dry_run:
+        print('--- dry run ---')
+        print(cmd)
+
+    else:
+        subprocess.check_call(shlex.split(cmd))
+
+    return dir_to_dl
+
+
+def rm_files(s3_path, files, dry_run=False):
+    '''
+    Removes files on s3 given a path and a list of filenames
+    '''
+
+    bucket = s3_path.split('/')[2]
+    key = '/'.join(s3_path.split('/')[3:])
+
+    for f in files:
+        cmd = f'aws s3 rm s3://{bucket}/{key}/{f}'
+
+        if dry_run:
+            print('--- dry run ---')
+            print(cmd)
+
+        else:
+            subprocess.check_call(shlex.split(cmd))
 
 
 def upload_folder(s3_path, local_folder_path, dry_run=False):
@@ -138,4 +238,3 @@ def submit_job(name, jq, jobdef, params):
     :param params: dict of container overrides key/value pairs
     :return: dict of return information from aws batch command
     '''
-
