@@ -1,2 +1,2 @@
 # helpers
-Helper python scripts for docker system
+Helper python scripts for metagenomi's docker system
