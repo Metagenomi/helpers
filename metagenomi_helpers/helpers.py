@@ -229,6 +229,23 @@ def delete_working_dir(working_dir):
         print(f"Can't delete {working_dir}")
 
 
+def is_unique_mgid(mg_id, dbname):
+    db = boto3.resource('dynamodb')
+    tbl = db.Table(dbname)
+
+    response = tbl.get_item(
+        Key={
+            'mg-identifier': mg_id,
+            }
+        )
+
+    if 'Item' in response:
+        return False
+
+    return True
+
+
+
 def submit_job(name, jq, jobdef, params):
     '''
     Submit an AWS Batch job to the defined job queue
