@@ -4,6 +4,7 @@ import shlex
 import shutil
 import boto3
 import uuid
+import boto3
 
 # will use env AWS_* credentials
 s3 = boto3.resource('s3')
