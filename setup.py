@@ -1,7 +1,7 @@
 from distutils.core import setup
 import setuptools
 
-version = '1.0.1'
+version = '1.0.3'
 
 packages = ['metagenomi_helpers']
 
